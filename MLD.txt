@@ -1,0 +1,214 @@
+MLD pour le sujet 5
+
+Remarque : 
+- si non précisé, les attributs sont consiédrés comme NOT NULL.
+- CC = Contrainte Compliqué
+
+########## package Ressource #############
+
+Ici on peut utiliser un JSON pour l'adresse à la place de séparer les attributs (rue, numéro de rue, ...). 
+Distributeur(#nom : varchar, numero_tel : varchar, adresse : json) 
+avec numero_tel et (num_rue, rue, ville, Code_postale) clef
+
+Genre(#nom_genre : varchar)
+3NF : Clé primaire unique, aucun attribut non clé détermine un autre attribut non clé. 
+
+Film(#titre : varchar, #date_sortie : date, resume : text, #duree : integer, age_min : integer) avec (titre, duree, date_sortie) clef
+3NF : Clé primaire unique, aucun attribut non clé détermine un autre attribut non clé.
+
+On peut utiliser le format JSON pour les notes. On pourra ajouter un tableau de Note pour un film en attribut.
+La classe Film est donc maintenant :
+Film(#titre : varchar, #date_sortie : date, resume : text, #duree : integer, age_min : integer, notes : json) avec (titre, duree, date_sortie) clef. 
+3NF : Clé primaire unique, aucun attribut non clé détermine un autre attribut non clé.
+
+********************************************
+Les relations d'associations correspondantes : 
+
+Gere_Film(#Nom_Distributeur => Distributeur, #titre_Film=>Film.titre, #date_Film=>Film.date_sortie, #duree_Film=>Film.duree) 
+est_Genre(#nom_Genre=>Genre, #titre_Film=>Film.titre, #date_Film=>Film.date_sortie, #duree_Film=>Film.duree)
+
+Contraintes des associations
+
+Projection(Gere_Film, Nom_Distributeur) = Projection(Distributeur, nom)
+Projection(Gere_Film, titre_Film, date_Film, duree_Film) = Projection(Film,titre, date_sortie, duree)
+
+########## package Consommable #############
+
+Nous avons ici un héritage. L'héritage est complet. Un héritage par la classe mère paraît être la meilleure solution.
+On définira deux types alimentaire et boisson. Le produit ne pourra que prendre un des types à chaque fois.
+
+On ajoutera un id_produit comme clé artificielle.
+Produit(#id_produit : integer, nom : varchar, prix : float, type : {alimentaire | boisson}) 
+
+
+########## package Organisation ##########################
+
+Salle(#numero_salle : integer, nb_place : integer)
+3NF : la clé primaire est unique, aucun attribut non clé détermine un autre attribut non clé
+
+La classe Seance ne possède pas de clé primaire, on ajoute une clé artificielle id_seance
+Comme on a une composition avec entre Film et séance, on ajoute la clé étrangère de la classe Film.
+On a une relation 1 -- 0..* entre Salle et Séance, on ajoute la clé étrangère.
+Seance(#id_seance : integer, horaire_projection : datetime, doublage{VF|VOSTFR|VO}, #titre_Film=>Film.titre, #date_Film=>Film.date_sortie, #duree_Film=>Film.duree, id_Salle=>Salle)
+3NF : la clé primaire est unique, aucun attribut non clé détermine un autre attribut non clé
+
+########## package Ticket ################################
+
+Nous avons ici la classe abstraite Entrée. L'Héritage est complexe. Nous allons voir les différents héritages possibles pour choisir la meilleure solution.
+
+On remarque que l'on a un héritage exclusif. Nous remarquons aussi que la classe mère a deux relations d'associations et que l'une des classes filles aussi.
+
+*test héritage par référence
+
+On ajoute une clé artificielle id_entree.
+On a une composition avec Seance, on ajoute donc la clé étrangère id_Seance.
+Entree(#id_entree : integer, prix : integer, #id_Seance=>Seance)
+3NF : la clé primaire est unique, aucun attribut non clé détermine un autre attribut non clé
+
+Ticket_unitaire(#id_entree=>id_entree, tarif : {enfant, etudiant, adulte, senior, dimanche})
+3NF : la clé primaire est unique, aucun attribut non clé détermine un autre attribut non clé
+
+On a une composition avec abonnement, on ajoute donc une clé étrangère.
+Ticket_abonnement(#id_entree=>id_entree, #id_abonnement=>Abonnement)
+3NF : la clé primaire est unique, aucun attribut non clé détermine un autre attribut non clé
+
+CC1 = Intersection(Projection(Ticket_abonnement, id_entree), Projection(Ticket_unitaire, id_entree)) = VIDE
+
+CC2 = Projection(Entree, id_entree) = Union(Projection(Ticket_abonnement, id_entree), Projection(Ticket_unitaire, id_entree))
+
+*test héritage par la mère
+
+On ajoute une clé artificielle id_entree.
+On a une composition avec abonnement, on ajoute donc une clé étrangère.
+Entree(#id_entree : integer, prix : integer, type : {unitaire | abonnement}, tarif : {enfant, etudiant, adulte, senior, dimanche}, #id_Seance=>Seance, id_abonnement=> Abonnement)
+tarif peut être NULL
+3NF : la clé primaire est unique, aucun attribut non clé détermine un autre attribut non clé
+
+Contrainte simple : (type = abonnement AND id_abonnement NOT NULL AND tarif IS NULL) OR (type = unitaire AND id_abonnement IS NULL AND tarif NOT NULL)
+
+
+Pas de contraintes compliquées.
+
+*test héritage par les classes filles
+
+On ajoute une clé artificielle id_entree.
+Ticket_unitaire(#id_entree : integer, prix : float, tarif : {enfant, etudiant, adulte, senior, dimanche}, #id_Seance=>Seance) 
+3NF : la clé primaire est unique, aucun attribut non clé détermine un autre attribut non clé
+
+On ajoute une clé artificielle id_entree.
+On ajoute la clé artificielle id_abonnement pour la composition avec abonnement.
+Ticket_abonnement(#id_entree : integer, prix : float, #id_Seance=>Seance, #id_abonnement=> Abonnement)
+3NF : la clé primaire est unique, aucun attribut non clé détermine un autre attribut non clé
+
+CC1 = Intersection(Projection(Ticket_Unitaire, id_entree), Projection(Ticket_abonnement, id_entree)) = VIDE
+ 
+Avec un héritage par les classes filles on ajouterait des classes d'asssociations en plus entre Vendeur et Ticket_Unitaire, entre vendeur et ticket_abonnement.
+
+
+****Choix de l'héritage
+
+Le choix le plus simple semble être l'héritage par la classe mère. Il y a moins de contraintes compliquées. Nous avons donc :
+
+Entree(#id_entree : integer, prix : integer, type : {unitaire | abonnement}, tarif : {enfant, etudiant, adulte, senior, dimanche}, #id_Seance=>Seance, id_abonnement=> Abonnement)
+3NF : la clé primaire est unique, aucun attribut non clé détermine un autre attribut non clé
+
+On ajoute une clé artificielle id_abonnement
+Abonnement(#id_abonnement : integer, prix : float)
+3NF : la clé primaire est unique, aucun attribut non clé détermine un autre attribut non clé
+
+On ajoute une clé artificielle id_recharge. On a une composition avec abonnement, on ajoute la clé étrangère id_abonnement.
+Recharge(#id_recharge : integer, nb_ticket_recharge : integer, prix : float, #id_abonnement=>Abonnement)
+3NF : la clé primaire est unique, aucun attribut non clé détermine un autre attribut non clé
+
+vendeur(nom : varchar, prenom : varchar, date_naissance : date, #numero_tel : varchar, contrat : {CDI |CDD})
+3NF : la clé primaire est unique, aucun attribut non clé détermine un autre attribut non clé
+
+********************************************
+Les relations d'associations correspondantes : 
+
+entree_seance(#id_entree=> Entree, #id_Seance=>Seance)
+
+vend_recharge(#id_vendeur=>vendeur, #id_recharge=>Recharge, date_vente : date)
+vend_abonnement(#id_vendeur=>vendeur, #id_abonnement=>abonnement, date_vente : date)
+vend_ticket(#id_vendeur=>vendeur, #id_entree=>Entree, date_vente : date)
+
+*pour les consommables
+vend_produit(#id_vendeur=>vendeur, #id_produit=>Produit, date_vente : date)
+
+Contraintes des associations
+
+Projection(Recharge, id_recharge) = Projection(vend_recharge, id_recharge)
+Projection(Abonnement, id_abonnement) = Projection(vend_abonnement, id_abonnement)
+Projection(Entree, id_entree) = Projection(vend_ticket, id_entree)
+
+Projection(Produit, id_produit) = Projection(vend_produit, id_produit)
+
+########## package Artiste ##############################
+Nous avons un héritage à gérer. On remarque que la classe mère à des attributs. Les classes filles n'ont pas d'attributs. Les classes filles ont chacun une relation d'association. L'héritage n'est pas exclusif.
+
+Un héritage par la classe mère est compliqué pour la classe d'association realise et produit. Il n'est pas possible de vérifier en SQL si la personne est bien un réalisateurou producteur à moins d'une surcouche logicielle.
+
+Un héritage par référence entraine toujours de nombreuse contraintes complexes
+
+Un héritage par les classes filles ici semble idéal. En effet nous n'avons pas de contrainte compliquée car l'héritage est exclusif.
+Seul problème on rsique d'avoir un peu de redondance pour les personnes qui sont à la fois producteur et realisateur.
+
+On ajoute une clé artificielle id_artiste
+Producteur(#id_artiste,nom : varchar, prenom : varchar, date_naissance : date)
+3NF : la clé primaire est unique, aucun attribut non clé détermine un autre attribut non clé
+
+Realisateur(#id_artiste, nom : varchar, prenom : varchar, date_naissance : date)
+3NF : la clé primaire est unique, aucun attribut non clé détermine un autre attribut non clé
+
+********************************************
+Les relations d'associations correspondantes : 
+
+produire(#id_producteur, #titre_Film=>Film.titre, #date_Film=>Film.date_sortie, #duree_Film=>Film.duree)
+realise(#id_real=>Realisateur, #titre_Film=>Film.titre, #date_Film=>Film.date_sortie, #duree_Film=>Film.duree)
+
+Contraintes des associations :
+
+Projection(produire, id_producteur) = Projection(Producteur, id_artiste)
+Projection(Film, titre, date_sortie, duree) = Projection(produire, titre_Film, date_Film, duree_Film)
+
+Projection(realise, id_producteur) = Projection(Realisateur, id_artiste)
+Projection(Film, titre, date_sortie, duree) = Projection(realise, titre_Film, date_Film, duree_Film)
+
+**************** Les vues *********************
+Voir les produits en stocks
+R1 = Jointure_Gauche(Produit, vend_produit, Produit.id_produit = vend_produit.id_produit)
+R2 = Restriction(R1, date_vent = NULL)
+R3 = Projection(R2, nom, id.produit)
+
+********************
+Les programmation du 1 juin au jusqu'au 7 juin
+R1 = Restriction(Seance, horaire_projection <= '2020-06-08' AND horaire_projection >= '2020-06-01')
+R2 = Projection(R1, titre, horaire_projection, duree_Film, id_salle)
+
+********************
+Les places restantes pour les séances du jour (3 juin)
+R1 = Projection(Entree, id_seance, id_entree)
+R2 = Jointure(R1, Seance, Seance.id_seance = Entree.id_seance)
+R3 = Restriction(R2, horaire_projection < '2020-06-04' AND horaire_projection >= '2020-06-03')
+R4 = Jointure(R3, Salle, Salle.numero_salle = R3.id_salle)
+R5 = Projection(R4, R4.titre, R4.nb_place - R4.place)
+
+********************
+J'explique les autres vues de manière plus littéral car elles contiennent des sommes, count, ...
+Une vue montrant les étoiles récoltées par les films
+On va projetter le titre, la date_sortie et la duree, ainsi que la moyenne du tableau JSON
+
+*******************
+Une vue montrant les tickets restants sur une carte d'abonnement
+On compte le nombre de place qu'on a dans les recharges, on va aussi faire la somme des tickets utilisés par abonnement.
+On va joindre les deux via l'id_abonnement. On va ensuite soustraire les places rechargés moins les tickets utilisés.
+
+******************
+La vue reprend la logique des places restantes mais on divise par le nombre de place de la salle
+
+******************
+Les revenus de seven
+R1 = Restriction(Seance, titre_film = Seven  date_film = 1996-01-31, duree_film = 128)
+R2 = Projection(R1, titre_Film, id_seance)
+R3 = Jointure(Entree, R2, Entree.id_seance = R2.id_seance)
+R4 = Projection(R3, la somme des prix par nom de film)

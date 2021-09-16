@@ -1,0 +1,162 @@
+@startuml
+hide circle
+
+package Ressource{
+  package Personnalite_audiovisuelle{
+    class Artiste <<abstract>>{
+      nom : VARCHAR
+      prenom : VARCHAR
+      Date_naissance : DATE
+    }
+
+    class Realisateur{
+
+    }
+
+    class Producteur{
+
+    }
+  }
+
+  class Film{
+    titre : VARCHAR
+    date_sortie : DATE
+    resume : VARCHAR
+    duree : TIME
+    age_min : INTEGER
+  }
+  note left : {(titre, duree, date_sortie) key}
+
+  Artiste <|-- Realisateur
+  Artiste <|-- Producteur
+
+  class Genre{
+    nom_genre : VARCHAR {key}
+  }
+
+  class Distributeur{
+    nom : VARCHAR {key}
+    numero_tel : VARCHAR {key}
+    num_rue : INTEGER
+    rue : VARCHAR
+    ville : VARCHAR
+    Code_postale : INTEGER
+  }
+  Note left : {(num_rue, rue, ville, Code_postale) key}
+
+  class Note{
+    etoile : INTEGER {0<= etoile <= 5}
+  }
+
+  Film "0..*"-- "1..*" Genre : est >
+  Realisateur "1..*" -- "1..*" Film : realise >
+  Producteur "1..*" -- "1..*" Film : produit >
+  Distributeur "1" -- "0..*" Film : gere >
+  Film *-- "0..*" Note : note <
+
+}
+package Organisation{
+  class Vendeur{
+    nom : VARCHAR
+    prenom : VARCHAR
+    Date_naissance : DATE
+    numero_tel : VARCHAR
+    contrat : {CDI |CDD}
+  }
+
+  class vend_recharge{
+    Date_vente : DATE
+  }
+
+  class vend_abonnement{
+    Date_vente : DATE
+  }
+
+  class vend_produit{
+    Date_vente : DATE
+  }
+
+  class vend_entree{
+    Date_vente : DATE
+  }
+
+  package Organisation_film{
+
+    class Seance{
+      horaire_projection : timestamp
+      doublage : {VF, VOSTFR, VO}
+    }
+
+    class Salle{
+      numero_salle  : integer {key}
+      nb_place : integer {nb_place > 0}
+    }
+
+    package Ticket{
+      class Entree <<abstract>>{
+          prix : FLOAT {prix > 0}
+        }
+
+        class Abonnement{
+          prix : FLOAT {prix > 0}
+          nb_ticket() : integer
+        }
+
+        class Recharge{
+          nb_ticket_recharge : INTEGER
+          prix : FLOAT {prix > 0}
+        }
+
+        class Ticket_unitaire{
+          tarif : Tarif
+        }
+
+        class Ticket_abonnement{
+
+        }
+
+        enum Tarif{
+          enfant
+          etudiant
+          adulte
+          senior
+          dimanche
+        }
+      }
+  }
+  package Consommable{
+    class Produit<<abstract>>{
+      nom : VARCHAR
+      prix : FLOAT {prix > 0}
+    }
+
+    class Alimentaire{
+
+    }
+
+    class Boisson{
+
+    }
+  }
+
+  Seance "0..*"--"1" Salle : a lieu >
+  Seance *--"0..*" Entree
+  Seance "0..*" --* Film : projete >
+  Produit <|-- Alimentaire : "  XOR"
+  Produit <|-- Boisson
+  Entree <|-- Ticket_unitaire : "    XOR"
+  Entree <|-- Ticket_abonnement
+  Abonnement *--"0..*" Ticket_abonnement : acheter >
+  Recharge "0..*"--* Abonnement : recharge >
+
+
+  Vendeur "1" -- "0..*" Recharge
+  (Vendeur, Recharge). vend_recharge
+  Vendeur "1" -- "0..*" Abonnement
+  (Vendeur, Abonnement). vend_abonnement
+  Vendeur "1"-- "0..*" Produit
+  (Vendeur, Produit). vend_produit
+  Vendeur "1"-- "0..*" Entree
+  (Vendeur, Entree). vend_entree
+}
+@enduml
